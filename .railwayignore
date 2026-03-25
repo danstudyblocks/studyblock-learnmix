@@ -1,0 +1,23 @@
+# Node modules
+node_modules/
+**/node_modules/
+
+# Large static SVG assets (served via CDN/storage in production)
+storefront/public/svg/
+
+# Build outputs
+.next/
+.medusa/
+dist/
+build/
+
+# Local env files
+.env
+.env.local
+**/.env
+**/.env.local
+
+# Dev/test files
+**/.claude/
+**/playwright-report/
+**/test-results/
