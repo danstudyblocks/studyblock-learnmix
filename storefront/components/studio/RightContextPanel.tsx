@@ -575,13 +575,6 @@ const RightContextPanel = observer(({ store }: RightContextPanelProps) => {
               </ToolRow>
               <ToolRow className="right-context-panel__tool-row--center">
                 <div className="right-context-panel__font-controls">
-                  <div className="right-context-panel__font-family">
-                    <TextFontFamilyControl
-                      elements={selectedElements}
-                      store={store}
-                      position={Position.LEFT_TOP}
-                    />
-                  </div>
                   <div className="right-context-panel__font-size">
                     <TextFontSize elements={selectedElements} store={store} />
                   </div>
@@ -843,25 +836,6 @@ const RightContextPanel = observer(({ store }: RightContextPanelProps) => {
   const railItems: RailItemDescriptor[] =
     selectedType === "text" && !hasMixedSelection
       ? [
-          {
-            key: "font",
-            title: "Font",
-            icon: Type,
-            render: (
-              <TextFontFamilyControl
-                elements={selectedElements}
-                store={store}
-                position={Position.LEFT_TOP}
-                triggerText="Font"
-                triggerIcon={<Type className="h-5 w-5" />}
-                triggerClassName="right-context-drawer__nav-button right-context-drawer__nav-button--tool"
-                showCaret={false}
-                useActiveFontStyle={false}
-                tooltipContent="Font"
-                customTrigger
-              />
-            ),
-          },
           {
             key: "colour",
             title: "Colour",

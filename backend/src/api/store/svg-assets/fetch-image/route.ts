@@ -12,27 +12,42 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       })
     }
 
-    // Fetch the image from the provided URL
-    const response = await axios.get(url, {
-      responseType: "arraybuffer",
-      timeout: 30000, // 30 second timeout
-    })
+    // Fetch the image from the provided URL, retry once on transient failure
+    let response: any
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        response = await axios.get(url, {
+          responseType: "arraybuffer",
+          timeout: 15000,
+          headers: { "Accept": "image/*,*/*" },
+        })
+        break
+      } catch (err: any) {
+        if (attempt === 2) throw err
+        // Brief pause before retry
+        await new Promise((r) => setTimeout(r, 500))
+      }
+    }
 
     // Determine the MIME type from the response or URL
-    let mimeType = response.headers["content-type"] || "image/png"
-    
-    // If content-type is not set, try to infer from URL
-    if (!response.headers["content-type"]) {
-      const urlLower = url.toLowerCase()
-      if (urlLower.endsWith(".svg")) {
-        mimeType = "image/svg+xml"
-      } else if (urlLower.endsWith(".webp")) {
-        mimeType = "image/webp"
-      } else if (urlLower.endsWith(".png")) {
-        mimeType = "image/png"
-      } else if (urlLower.endsWith(".jpg") || urlLower.endsWith(".jpeg")) {
-        mimeType = "image/jpeg"
-      }
+    let mimeType = (response.headers["content-type"] || "").split(";")[0].trim()
+
+    if (!mimeType || !mimeType.startsWith("image/")) {
+      // Try to infer from URL extension
+      const urlLower = url.toLowerCase().split("?")[0]
+      if (urlLower.endsWith(".svg")) mimeType = "image/svg+xml"
+      else if (urlLower.endsWith(".webp")) mimeType = "image/webp"
+      else if (urlLower.endsWith(".png")) mimeType = "image/png"
+      else if (urlLower.endsWith(".jpg") || urlLower.endsWith(".jpeg")) mimeType = "image/jpeg"
+      else mimeType = "image/png"
+    }
+
+    // Reject non-image responses (e.g. HTML error pages from auth-gated CDNs)
+    if (!mimeType.startsWith("image/")) {
+      return res.status(422).json({
+        success: false,
+        error: `Remote server returned non-image content (${mimeType})`,
+      })
     }
 
     // Convert to base64
@@ -45,7 +60,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       mimeType,
     })
   } catch (error: any) {
-    console.error("Error fetching image:", error)
+    console.error("Error fetching image:", error.message, "url:", req.query.url)
     res.status(500).json({
       success: false,
       error: error.message || "Failed to fetch image",

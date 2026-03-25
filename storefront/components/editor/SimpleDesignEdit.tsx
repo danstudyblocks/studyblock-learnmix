@@ -4,12 +4,23 @@ import React, { useState, useRef, useCallback, useEffect } from "react"
 import Script from "next/script"
 import { PolotnoContainer, SidePanelWrap } from "polotno"
 import { createStore } from "polotno/model/store"
+import { observer } from "mobx-react-lite"
 import { SimpleSidePanel } from "./SimpleSidePanel"
 import { SimpleRightSidePanel, type DesignActionsRef } from "./SimpleRightSidePanel"
+import { TextPropertiesPanel } from "./TextPropertiesPanel"
 import { CustomWorkspace } from "./CustomWorkspace"
 import Header from "./Header"
 import { CookieConsentBanner } from "./CookieConsentBanner"
 import type { WritingGuidePreset } from "./linedWritingBox"
+import { unstable_registerToolbarComponent as registerToolbarComponent } from "polotno/config"
+import { TextToolbar } from "polotno/toolbar/text-toolbar"
+
+// Remove the built-in font-family picker from the top toolbar —
+// our TextPropertiesPanel (right side) handles font selection instead.
+const TextToolbarNoFontFamily = observer((props: any) => (
+  <TextToolbar {...props} components={{ ...props.components, TextFontFamily: () => null }} />
+))
+registerToolbarComponent("text", TextToolbarNoFontFamily)
 
 // A3 at 96 DPI: 297mm × 420mm
 const DEFAULT_CANVAS_WIDTH = 1123
@@ -83,6 +94,9 @@ export const SimpleDesignEdit = ({ customer }: any) => {
             activeWritingGuide={activeWritingGuide}
             onDeactivateWritingGuideTool={() => setActiveWritingGuide(null)}
           />
+
+          {/* Text properties panel — appears when a text element is selected */}
+          <TextPropertiesPanel store={store} />
 
           {/* Actions + modals only (no visible sidebar); ref used by header buttons */}
           <SimpleRightSidePanel

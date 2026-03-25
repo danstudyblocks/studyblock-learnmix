@@ -20,7 +20,9 @@ import {
   Shield,
   FileText,
   LogOut,
+  Printer,
 } from "lucide-react"
+import { PrintOrderModal } from "./PrintOrderModal"
 
 interface HeaderProps {
   customer?: any
@@ -30,6 +32,7 @@ interface HeaderProps {
 const Header = observer(({ customer, store }: HeaderProps) => {
   const [avatar_url, setAvatarUrl] = useState("")
   const [showAvatarMenu, setShowAvatarMenu] = useState(false)
+  const [showPrintModal, setShowPrintModal] = useState(false)
   const avatarMenuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -63,6 +66,7 @@ const Header = observer(({ customer, store }: HeaderProps) => {
   }
 
   return (
+    <>
     <header className="w-full border-b border-gray-200 bg-[#FCFAF8]">
       {/* Top bar: logo (left) | Home + Profile (right) - full width */}
       <div className="w-full h-14 flex items-center justify-between px-4 md:px-6 lg:px-8">
@@ -74,6 +78,18 @@ const Header = observer(({ customer, store }: HeaderProps) => {
           learnmix
         </Link>
         <div className="flex items-center gap-3 relative">
+          {/* Buy a Print */}
+          {store && (
+            <button
+              type="button"
+              onClick={() => setShowPrintModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#7b5cff] hover:bg-[#6548e0] transition-colors text-sm font-semibold text-white"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Buy a Print</span>
+            </button>
+          )}
+
           <Link
             href="/"
             className="flex items-center gap-2 px-4 py-2 rounded-full border border-gray-300 bg-white hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
@@ -219,6 +235,15 @@ const Header = observer(({ customer, store }: HeaderProps) => {
       </div>
 
     </header>
+
+    {showPrintModal && store && (
+      <PrintOrderModal
+        store={store}
+        customer={customer}
+        onClose={() => setShowPrintModal(false)}
+      />
+    )}
+  </>
   )
 })
 

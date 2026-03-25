@@ -12,6 +12,7 @@ import { FaChevronLeft } from "react-icons/fa"
 
 import ai_icon from "../../public/design-edit-icons-and-svgs/icons/ai_icon.json"
 import blocks_icon from "../../public/design-edit-icons-and-svgs/icons/blocks_icon.json"
+import chat_icon from "../../public/design-edit-icons-and-svgs/icons/chat_icon.json"
 import icons_icon from "../../public/design-edit-icons-and-svgs/icons/icons_icon.json"
 import layers_icon from "../../public/design-edit-icons-and-svgs/icons/layers_icon.json"
 import photos_icon from "../../public/design-edit-icons-and-svgs/icons/photos_icon.json"
@@ -26,6 +27,7 @@ import BlocksSection from "./BlocksSection"
 import CustomSvgAssetsSection from "./CustomSvgAssetsSection"
 import CustomTemplatesSection from "./CustomTemplatesSection"
 import { CustomSizeSection } from "./CustomSizeSection"
+import { TeacherNotesSection } from "./TeacherNotesSection"
 
 type PanelSection = {
   name: string
@@ -95,6 +97,12 @@ const sections: PanelSection[] = [
     icon: layers_icon,
     title: "Layers",
   },
+  {
+    name: "teacher-notes",
+    Tab: TeacherNotesSection,
+    icon: chat_icon,
+    title: "Notes",
+  },
 ]
 
 export const CustomSidePanel = observer(
@@ -141,6 +149,10 @@ export const CustomSidePanel = observer(
         return <CustomSizeSection.Panel store={store} />
       }
 
+      if (section.name === "teacher-notes") {
+        return <TeacherNotesSection store={store} />
+      }
+
       // @ts-ignore Polotno sections expose Panel under Tab
       if (section.Tab?.Panel) {
         return (
@@ -159,7 +171,7 @@ export const CustomSidePanel = observer(
 
     return (
       <div className="flex h-full">
-        <div className="w-16 md:w-20 border-r border-gray-200 bg-white p-1 md:p-2 overflow-hidden">
+        <div className="w-16 md:w-20 border-r border-gray-200 bg-white p-1 md:p-2 overflow-y-auto">
           <div className="grid grid-cols-1 gap-0.5 md:gap-1">
             {sections.map((section) => {
               const isActive =

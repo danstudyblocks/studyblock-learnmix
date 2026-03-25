@@ -138,68 +138,73 @@ const renderOptionGroup = ({
 const LinedWritingSection = observer(
   ({ activePreset, onActivate, onDeactivate }: LinedWritingSectionProps) => {
     return (
-      <div className="space-y-5 rounded-[28px] bg-[#fcfaf8] p-5 text-[#171717]">
-        <div>
+      <div className="flex h-full flex-col bg-[#fcfaf8] text-[#171717]">
+        {/* Header */}
+        <div className="border-b border-[#d8d2c8] px-6 py-6">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#7f7668]">
             Writing Tool
           </p>
           <h2 className="mt-2 text-2xl font-semibold leading-tight">
             Lined writing box
           </h2>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-[#5d5549]">
+          <p className="mt-3 text-sm leading-6 text-[#5d5549]">
             Pick lined or grid spacing, then drag on the canvas to draw a writing
             guide at the exact size you need.
           </p>
-        </div>
 
-        {renderOptionGroup({
-          title: "Lined guides",
-          description: "Exercise-book style ruled boxes for handwriting and longer written responses.",
-          options: lineOptions,
-          activePreset,
-          onActivate,
-          onDeactivate,
-        })}
-
-        {renderOptionGroup({
-          title: "Grid guides",
-          description: "Square grids for maths, graphing, layout planning, or structured worksheet tasks.",
-          options: gridOptions,
-          activePreset,
-          onActivate,
-          onDeactivate,
-        })}
-
-        <div className="rounded-[22px] border border-[#ddd6cb] bg-white px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7f7668]">
-            How it works
-          </p>
-          <ol className="mt-3 space-y-2 text-sm leading-6 text-[#5d5549]">
-            <li>1. Select a lined or grid spacing option.</li>
-            <li>2. Drag on the page to draw the writing area.</li>
-            <li>3. Resize or duplicate the box like any other canvas element.</li>
-          </ol>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {activePreset ? (
-            <>
-              <div className="rounded-full bg-[#171717] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white">
-                Draw mode on: {activePreset.spacingMm}mm {activePreset.kind}
+          {/* Active state indicator */}
+          <div className="mt-4 flex items-center gap-3">
+            {activePreset ? (
+              <>
+                <div className="rounded-full bg-[#171717] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white">
+                  Draw mode on: {activePreset.spacingMm}mm {activePreset.kind}
+                </div>
+                <button
+                  type="button"
+                  onClick={onDeactivate}
+                  className="rounded-full border border-[#d4ccbf] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[#5d5549] transition hover:border-[#171717] hover:text-[#171717]"
+                >
+                  Stop drawing
+                </button>
+              </>
+            ) : (
+              <div className="rounded-full border border-[#d4ccbf] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[#7f7668]">
+                Select a spacing to begin
               </div>
-              <button
-                type="button"
-                onClick={onDeactivate}
-                className="rounded-full border border-[#d4ccbf] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#5d5549] transition hover:border-[#171717] hover:text-[#171717]"
-              >
-                Stop drawing
-              </button>
-            </>
-          ) : (
-            <div className="rounded-full border border-[#d4ccbf] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#7f7668]">
-              Select a spacing to begin
-            </div>
-          )}
+            )}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {renderOptionGroup({
+            title: "Lined guides",
+            description: "Exercise-book style ruled boxes for handwriting and longer written responses.",
+            options: lineOptions,
+            activePreset,
+            onActivate,
+            onDeactivate,
+          })}
+
+          {renderOptionGroup({
+            title: "Grid guides",
+            description: "Square grids for maths, graphing, layout planning, or structured worksheet tasks.",
+            options: gridOptions,
+            activePreset,
+            onActivate,
+            onDeactivate,
+          })}
+
+          <div className="rounded-2xl border border-[#d8d2c8] bg-white px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7f7668]">
+              How it works
+            </p>
+            <ol className="mt-3 space-y-2 text-sm leading-6 text-[#5d5549]">
+              <li>1. Select a lined or grid spacing option.</li>
+              <li>2. Drag on the page to draw the writing area.</li>
+              <li>3. Resize or duplicate the box like any other canvas element.</li>
+            </ol>
+          </div>
         </div>
       </div>
     )
