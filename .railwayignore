@@ -2,10 +2,7 @@
 node_modules/
 **/node_modules/
 
-# Oversized SVG files (>50MB, GitHub/Railway limit)
-storefront/public/svg/dummy-community-img.svg
-storefront/public/svg/team-account-img.svg
-storefront/public/svg/leading-commisson-img.svg
+# Note: public/svg files cannot be excluded as they are imported at build time
 
 # Build outputs
 .next/
