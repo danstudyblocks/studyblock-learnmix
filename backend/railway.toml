@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm install && npm run build"
+buildCommand = "pnpm install --no-frozen-lockfile && npm run build"
 
 [deploy]
 startCommand = "npm run start"
