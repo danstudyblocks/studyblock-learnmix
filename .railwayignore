@@ -2,8 +2,10 @@
 node_modules/
 **/node_modules/
 
-# Large static SVG assets (served via CDN/storage in production)
-storefront/public/svg/
+# Oversized SVG files (>50MB, GitHub/Railway limit)
+storefront/public/svg/dummy-community-img.svg
+storefront/public/svg/team-account-img.svg
+storefront/public/svg/leading-commisson-img.svg
 
 # Build outputs
 .next/
