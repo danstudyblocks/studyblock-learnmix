@@ -1,7 +1,0 @@
-# Root railway.toml — monorepo project
-# Railway will detect two services from the subdirectories:
-#   backend/   → Medusa backend (port 9000)
-#   storefront/ → Next.js frontend (port 8000)
-#
-# Set up two services in the Railway dashboard, each pointing to their
-# respective subdirectory as the root directory.
