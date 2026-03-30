@@ -5,7 +5,6 @@ import { reaction } from "mobx"
 import { observer } from "mobx-react-lite"
 import { unstable_registerTransformerAttrs } from "polotno/config"
 import { Workspace } from "polotno/canvas/workspace"
-import { WorkspaceWrap } from "polotno"
 import { Redo2, Undo2, ZoomIn, ZoomOut } from "lucide-react"
 import RightContextPanel from "../studio/RightContextPanel"
 import {
@@ -508,7 +507,7 @@ export const CustomWorkspace = observer(
           store.pages.length > 1 ? "custom-editor-workspace--multi-page" : "custom-editor-workspace--single-page"
         } flex flex-col flex-1 min-w-0 h-full relative overflow-hidden bg-[#F5F2EE]`}
       >
-        <WorkspaceWrap className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
           <div className="flex-1 relative min-h-0">
             <Workspace
               store={store}
@@ -580,7 +579,7 @@ export const CustomWorkspace = observer(
               />
             ) : null}
           </div>
-        </WorkspaceWrap>
+        </div>
       </div>
     )
   }

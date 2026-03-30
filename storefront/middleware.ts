@@ -27,7 +27,8 @@ async function getRegionMap() {
     }).then((res) => res.json())
 
     if (!regions?.length) {
-      notFound()
+      // Backend unavailable or no regions — allow requests to proceed anyway
+      return regionMapCache.regionMap
     }
 
     // Create a map of country codes to regions.
