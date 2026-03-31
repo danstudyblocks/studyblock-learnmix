@@ -5,14 +5,16 @@ import { useState, useEffect, useImperativeHandle, forwardRef, useRef } from "re
 import { useRouter } from "next/navigation"
 import { downloadHighQualityPdf } from "./utils/pdf"
 import { setCartIdCookie } from "@/lib/data/cart"
-import { 
-  Download, 
-  Share2, 
-  Printer, 
-  MessageCircle, 
-  Upload 
+import {
+  Download,
+  Share2,
+  Printer,
+  MessageCircle,
+  Upload,
+  X,
+  Tag,
 } from "lucide-react"
-import { uploadTemplate, fetchCategories } from "@/lib/data/vendor"
+import { uploadTemplate } from "@/lib/data/vendor"
 
 export interface DesignActionsRef {
   download: () => void
@@ -27,10 +29,6 @@ const SimpleRightSidePanelInner = forwardRef<DesignActionsRef, { store: any; cus
     const [isUploading, setIsUploading] = useState(false)
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
     const [templateData, setTemplateData] = useState(null)
-    const [availableTopCategories, setAvailableTopCategories] = useState<string[]>([])
-    const [availableSubCategories, setAvailableSubCategories] = useState<string[]>([])
-    const [showNewTopCategory, setShowNewTopCategory] = useState(false)
-    const [showNewSubCategory, setShowNewSubCategory] = useState(false)
     const [isPrinting, setIsPrinting] = useState(false)
     const [showPrintModal, setShowPrintModal] = useState(false)
     const [printProductType, setPrintProductType] = useState("poster")
@@ -38,13 +36,13 @@ const SimpleRightSidePanelInner = forwardRef<DesignActionsRef, { store: any; cus
     const [themeDetails, setThemeDetails] = useState({
       title: store.name,
       description: "",
-      isPremium: false,
-      category_top: "",
-      category_sub: "",
+      isPremium: true,
+      subjects: [] as string[],
       tags: [] as string[],
-      show_in_studio: false,
+      show_in_studio: true,
     })
     const [currentTag, setCurrentTag] = useState("")
+    const [currentSubject, setCurrentSubject] = useState("")
 
     const handleDownload = async () => {
       try {
@@ -164,18 +162,7 @@ const SimpleRightSidePanelInner = forwardRef<DesignActionsRef, { store: any; cus
         return
       }
 
-      try {
-        const categories = await fetchCategories()
-        console.log("Fetched categories:", categories)
-        setAvailableTopCategories(categories.top_categories || [])
-        setAvailableSubCategories(categories.sub_categories || [])
-      } catch (error) {
-        console.error("Error fetching categories:", error)
-        setAvailableTopCategories(["Worksheet", "Poster", "Marketing", "Social Media"])
-        setAvailableSubCategories(["design", "tech", "english", "math"])
-      }
-
-      setTemplateData(design_json)
+        setTemplateData(design_json)
       setIsUploadModalOpen(true)
     }
 
@@ -264,8 +251,34 @@ const SimpleRightSidePanelInner = forwardRef<DesignActionsRef, { store: any; cus
       }
     }
 
+    const addSubject = () => {
+      const trimmed = currentSubject.trim()
+      if (trimmed && !themeDetails.subjects.includes(trimmed)) {
+        setThemeDetails((prev) => ({ ...prev, subjects: [...prev.subjects, trimmed] }))
+      }
+      setCurrentSubject("")
+    }
+
+    const removeSubject = (subject: string) => {
+      setThemeDetails((prev) => ({ ...prev, subjects: prev.subjects.filter((s) => s !== subject) }))
+    }
+
+    const handleSubjectKeyPress = (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") { e.preventDefault(); addSubject() }
+    }
+
     const confirmUploadTemplate = async () => {
-      const { title, description, isPremium, category_top, category_sub, tags, show_in_studio } = themeDetails
+      // Flush any text still sitting in the inputs
+      const finalSubjects = currentSubject.trim()
+        ? [...themeDetails.subjects, ...currentSubject.split(",").map((s) => s.trim()).filter(Boolean)]
+        : themeDetails.subjects
+      const finalTags = currentTag.trim()
+        ? [...themeDetails.tags, ...currentTag.split(",").map((t) => t.trim()).filter(Boolean)]
+        : themeDetails.tags
+
+      const { title, description } = themeDetails
+      const category_top = finalSubjects[0] || null
+      const category_sub = finalSubjects.slice(1).join(", ") || null
 
       if (!title.trim()) {
         alert("Please enter a design title.")
@@ -291,13 +304,13 @@ const SimpleRightSidePanelInner = forwardRef<DesignActionsRef, { store: any; cus
         const result = await uploadTemplate(templateData, customer.id, {
           title,
           description,
-          isPremium,
+          isPremium: true,
           category_top: category_top || null,
           category_sub: category_sub || null,
-          tags: tags.length > 0 ? tags : null,
+          tags: finalTags.length > 0 ? finalTags : null,
           thumbnail: thumbnailDataUrl,
           isTemplate: true,
-          show_in_studio: show_in_studio || false,
+          show_in_studio: true,
         })
 
         if (result.success) {
@@ -307,11 +320,10 @@ const SimpleRightSidePanelInner = forwardRef<DesignActionsRef, { store: any; cus
           setThemeDetails({
             title: store.name,
             description: "",
-            isPremium: false,
-            category_top: "",
-            category_sub: "",
+            isPremium: true,
+            subjects: [],
             tags: [],
-            show_in_studio: false,
+            show_in_studio: true,
           })
         } else {
           alert("Error: " + result.error)
@@ -359,209 +371,169 @@ const SimpleRightSidePanelInner = forwardRef<DesignActionsRef, { store: any; cus
 
         {/* Upload Modal */}
         {isUploadModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setIsUploadModalOpen(false)}>
-            <div className="bg-white rounded-lg shadow-xl p-6 w-96 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              <h2 className="text-xl font-bold mb-4">Upload Template</h2>
-
-              <div className="space-y-4">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: "rgba(23,23,23,0.45)", backdropFilter: "blur(4px)" }}
+            onClick={() => setIsUploadModalOpen(false)}
+          >
+            <div
+              className="relative w-full max-w-xl rounded-2xl border border-[#e8e0d8] bg-[#FCFAF8] shadow-[0_24px_64px_rgba(15,23,42,0.18)] flex flex-col max-h-[90vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[#e8e0d8]">
                 <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">Template Title</label>
+                  <h2 className="text-lg font-semibold text-[#171717] tracking-tight">Upload Resource</h2>
+                  <p className="text-xs text-[#8a7f75] mt-0.5">Share your design with the community</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsUploadModalOpen(false)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e8e0d8] bg-white text-[#6b6058] hover:border-[#171717] hover:text-[#171717] transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Scrollable body */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+                {/* Title */}
+                <div>
+                  <label htmlFor="title" className="block text-xs font-semibold uppercase tracking-wider text-[#8a7f75] mb-1.5">
+                    Template Title <span className="text-[#171717]">*</span>
+                  </label>
                   <input
                     id="title"
                     type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-[#d0c8be] rounded-lg text-[#171717] placeholder-[#b0a89e] focus:outline-none focus:border-[#171717] transition-colors"
                     value={themeDetails.title}
                     onChange={(e) => setThemeDetails((prev) => ({ ...prev, title: e.target.value }))}
-                    placeholder="Enter Template title"
-                    required
+                    placeholder="e.g. Year 6 Reading Comprehension"
                   />
                 </div>
 
+                {/* Description */}
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label htmlFor="description" className="block text-xs font-semibold uppercase tracking-wider text-[#8a7f75] mb-1.5">
+                    Description
+                  </label>
                   <textarea
                     id="description"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-[#d0c8be] rounded-lg text-[#171717] placeholder-[#b0a89e] focus:outline-none focus:border-[#171717] transition-colors resize-none"
                     value={themeDetails.description}
                     onChange={(e) => setThemeDetails((prev) => ({ ...prev, description: e.target.value }))}
-                    placeholder="Describe your design"
+                    placeholder="Briefly describe what this template is for…"
                     rows={3}
                   />
                 </div>
 
-                <div className="flex flex-col gap-4">
-                  <div>
-                    <label htmlFor="category_top" className="block text-sm font-medium text-gray-700 mb-1">Top Category</label>
-                    {showNewTopCategory ? (
-                      <div className="flex gap-2">
-                        <input
-                          id="category_top"
-                          type="text"
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                          value={themeDetails.category_top}
-                          onChange={(e) => setThemeDetails((prev) => ({ ...prev, category_top: e.target.value }))}
-                          placeholder="Enter new category"
-                        />
-                        <button
-                          type="button"
-                          className="px-2 py-2 text-gray-500 hover:text-gray-700"
-                          onClick={() => {
-                            setShowNewTopCategory(false)
-                            setThemeDetails((prev) => ({ ...prev, category_top: "" }))
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        <div className="flex gap-2">
-                          <select
-                            id="category_top"
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                            value={themeDetails.category_top}
-                            onChange={(e) => setThemeDetails((prev) => ({ ...prev, category_top: e.target.value }))}
-                          >
-                            <option value="">Select category</option>
-                            {availableTopCategories.map((category, index) => (
-                              <option key={index} value={category}>{category}</option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            className="px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 text-sm"
-                            onClick={() => setShowNewTopCategory(true)}
-                          >
-                            New
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label htmlFor="category_sub" className="block text-sm font-medium text-gray-700 mb-1">Sub Category</label>
-                    {showNewSubCategory ? (
-                      <div className="flex gap-2">
-                        <input
-                          id="category_sub"
-                          type="text"
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                          value={themeDetails.category_sub}
-                          onChange={(e) => setThemeDetails((prev) => ({ ...prev, category_sub: e.target.value }))}
-                          placeholder="Enter new sub-category"
-                        />
-                        <button
-                          type="button"
-                          className="px-2 py-2 text-gray-500 hover:text-gray-700"
-                          onClick={() => {
-                            setShowNewSubCategory(false)
-                            setThemeDetails((prev) => ({ ...prev, category_sub: "" }))
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        <div className="flex gap-2">
-                          <select
-                            id="category_sub"
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                            value={themeDetails.category_sub}
-                            onChange={(e) => setThemeDetails((prev) => ({ ...prev, category_sub: e.target.value }))}
-                          >
-                            <option value="">Select sub-category</option>
-                            {availableSubCategories.map((category, index) => (
-                              <option key={index} value={category}>{category}</option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            className="px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 text-sm"
-                            onClick={() => setShowNewSubCategory(true)}
-                          >
-                            New
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
+                {/* Subjects */}
                 <div>
-                  <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
-                  <div className="flex gap-2 mb-2">
-                    <input
-                      id="tags"
-                      type="text"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                      value={currentTag}
-                      onChange={(e) => setCurrentTag(e.target.value)}
-                      onKeyPress={handleTagKeyPress}
-                      placeholder="Add a tag and press Enter"
-                    />
-                    <button
-                      type="button"
-                      className="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                      onClick={addTag}
-                    >
-                      Add
-                    </button>
-                  </div>
-                  {themeDetails.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {themeDetails.tags.map((tag, index) => (
-                        <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">
-                          {tag}
-                          <button type="button" className="text-gray-500 hover:text-gray-700" onClick={() => removeTag(tag)}>×</button>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#8a7f75] mb-1.5">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-[#d0c8be] rounded-lg text-[#171717] placeholder-[#b0a89e] focus:outline-none focus:border-[#171717] transition-colors"
+                    value={currentSubject}
+                    onChange={(e) => setCurrentSubject(e.target.value)}
+                    onKeyPress={handleSubjectKeyPress}
+                    placeholder="e.g. Maths, Science, English…"
+                  />
+                  {themeDetails.subjects.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2.5">
+                      {themeDetails.subjects.map((subject, index) => (
+                        <span key={index} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#d0c8be] text-[#4a403a] rounded-full text-xs font-medium">
+                          {subject}
+                          <button type="button" onClick={() => removeSubject(subject)} className="text-[#b0a89e] hover:text-[#171717] transition-colors ml-0.5">
+                            <X className="h-3 w-3" />
+                          </button>
                         </span>
                       ))}
                     </div>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="show_in_studio" className="text-sm font-medium text-gray-700">Allow users to edit this resource</label>
+                {/* Tags */}
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#8a7f75] mb-1.5">
+                    Tags
+                  </label>
+                  <div className="relative">
+                    <Tag className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#b0a89e]" />
                     <input
-                      id="show_in_studio"
-                      type="checkbox"
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                      checked={themeDetails.show_in_studio}
-                      onChange={(e) => setThemeDetails((prev) => ({ ...prev, show_in_studio: e.target.checked }))}
+                      type="text"
+                      className="w-full pl-8 pr-3 py-2.5 text-sm bg-white border border-[#d0c8be] rounded-lg text-[#171717] placeholder-[#b0a89e] focus:outline-none focus:border-[#171717] transition-colors"
+                      value={currentTag}
+                      onChange={(e) => setCurrentTag(e.target.value)}
+                      onKeyPress={handleTagKeyPress}
+                      placeholder="Type a tag and press Enter…"
                     />
                   </div>
+                  {themeDetails.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2.5">
+                      {themeDetails.tags.map((tag, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#d0c8be] text-[#4a403a] rounded-full text-xs font-medium"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => removeTag(tag)}
+                            className="text-[#b0a89e] hover:text-[#171717] transition-colors ml-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <label htmlFor="isPremium" className="text-sm font-medium text-gray-700">Premium Template</label>
-                  <input
-                    id="isPremium"
-                    type="checkbox"
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    checked={themeDetails.isPremium}
-                    onChange={(e) => setThemeDetails((prev) => ({ ...prev, isPremium: e.target.checked }))}
-                  />
-                </div>
+                {/* Info note */}
+                <p className="text-xs text-[#8a7f75] leading-relaxed">
+                  This resource will be added to the{" "}
+                  <span className="font-medium text-[#4a403a]">Learnmix store</span> to support educators worldwide. It will be linked to your store page and visible in your My Account area.
+                </p>
 
-                <div className="flex justify-end space-x-2 mt-4">
-                  <button
-                    type="button"
-                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
-                    onClick={() => setIsUploadModalOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className={`px-4 py-2 rounded-md ${isUploading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
-                    onClick={confirmUploadTemplate}
-                    disabled={isUploading}
-                  >
-                    {isUploading ? "Uploading..." : "Upload Template"}
-                  </button>
-                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#e8e0d8] bg-[#FCFAF8] rounded-b-2xl">
+                <button
+                  type="button"
+                  onClick={() => setIsUploadModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-[#6b6058] bg-white border border-[#d0c8be] rounded-full hover:border-[#171717] hover:text-[#171717] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmUploadTemplate}
+                  disabled={isUploading}
+                  className={`inline-flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-full border transition-colors ${
+                    isUploading
+                      ? "bg-[#d0c8be] border-[#d0c8be] text-white cursor-not-allowed"
+                      : "bg-[#171717] border-[#171717] text-white hover:bg-[#2d2d2d]"
+                  }`}
+                >
+                  {isUploading ? (
+                    <>
+                      <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      Uploading…
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-3.5 w-3.5" />
+                      Upload Resource
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>

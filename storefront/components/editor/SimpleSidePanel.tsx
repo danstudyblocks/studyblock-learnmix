@@ -156,7 +156,7 @@ const sections: PanelSection[] = [
   { name: "layers", Tab: LayersSection, icon: Layers, title: "Layers" },
   { name: "resize", Tab: CustomSizeSection, icon: Maximize2, title: "Resize" },
   { name: "download", icon: Download, title: "Download", customRender: (store) => <DownloadPanel store={store} /> },
-  { name: "add-to-learnmix", icon: ShoppingCart, title: "Share", customRender: (store, onAddToLearnmix) => <AddToLearnmixPanel store={store} onAddToLearnmix={onAddToLearnmix} /> },
+  { name: "add-to-learnmix", icon: ShoppingCart, title: "Share" },
   { name: "teacher-notes", icon: BookOpen, title: "Notes" },
 ]
 
@@ -180,6 +180,11 @@ export const SimpleSidePanel = observer(
     const [isContentVisible, setIsContentVisible] = useState(false)
 
     const handleSectionClick = (sectionName: string) => {
+      // Add-to-learnmix opens the modal directly, no side panel
+      if (sectionName === "add-to-learnmix") {
+        onAddToLearnmix?.()
+        return
+      }
       if (activeSection === sectionName) {
         if (sectionName === "lined-writing" && isContentVisible) {
           onDeactivateWritingGuideTool()

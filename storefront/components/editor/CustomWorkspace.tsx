@@ -5,7 +5,7 @@ import { reaction } from "mobx"
 import { observer } from "mobx-react-lite"
 import { unstable_registerTransformerAttrs } from "polotno/config"
 import { Workspace } from "polotno/canvas/workspace"
-import { Redo2, Undo2, ZoomIn, ZoomOut } from "lucide-react"
+import { ChevronUp, ChevronDown, Copy, Trash2, Plus, Redo2, Undo2, ZoomIn, ZoomOut } from "lucide-react"
 import RightContextPanel from "../studio/RightContextPanel"
 import {
   createWritingGuideSvg,
@@ -124,6 +124,99 @@ const addLinedWritingBox = ({
 
   return element
 }
+
+const btnClass =
+  "flex h-9 w-9 items-center justify-center rounded-full border border-[#171717] bg-[#FCFAF8] text-[#171717] shadow-[0_4px_12px_rgba(15,23,42,0.12)] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-35"
+
+const PageControls = observer(({ store, page, index }: { store: any; page: any; index: number }) => {
+  const isFirst = index === 0
+  const isLast = index === store.pages.length - 1
+
+  const handleDuplicate = () => {
+    try {
+      const pages = store.toJSON().pages
+      const pageData = pages.find((p: any) => p.id === page.id)
+      if (!pageData) return
+      // Deep-clone and regenerate all element IDs to avoid collisions
+      const newId = () => Math.random().toString(36).slice(2, 12)
+      const reId = (node: any): any => {
+        if (Array.isArray(node)) return node.map(reId)
+        if (node && typeof node === "object") {
+          const out: any = {}
+          for (const k of Object.keys(node)) {
+            out[k] = k === "id" ? newId() : reId(node[k])
+          }
+          return out
+        }
+        return node
+      }
+      const { id: _id, ...rest } = reId(pageData)
+      const newPage = store.addPage(rest)
+      store.setPageZIndex(newPage.id, index + 1)
+      store.selectPage(newPage.id)
+    } catch (e) {
+      console.error("Duplicate page error:", e)
+    }
+  }
+
+  const handleAdd = () => {
+    try {
+      const newPage = store.addPage()
+      store.setPageZIndex(newPage.id, index + 1)
+      store.selectPage(newPage.id)
+    } catch (e) {
+      console.error("Add page error:", e)
+    }
+  }
+
+  return (
+    <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5">
+      <button
+        type="button"
+        title="Move page up"
+        disabled={isFirst}
+        className={btnClass}
+        onClick={() => store.setPageZIndex(page.id, index - 1)}
+      >
+        <ChevronUp className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        title="Move page down"
+        disabled={isLast}
+        className={btnClass}
+        onClick={() => store.setPageZIndex(page.id, index + 1)}
+      >
+        <ChevronDown className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        title="Duplicate page"
+        className={btnClass}
+        onClick={handleDuplicate}
+      >
+        <Copy className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        title="Delete page"
+        disabled={store.pages.length <= 1}
+        className={`${btnClass} hover:border-red-500 hover:text-red-500 hover:bg-red-50`}
+        onClick={() => store.deletePages([page.id])}
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        title="Add page after"
+        className={`${btnClass} border-dashed`}
+        onClick={handleAdd}
+      >
+        <Plus className="h-4 w-4" />
+      </button>
+    </div>
+  )
+})
 
 export const CustomWorkspace = observer(
   ({
@@ -329,6 +422,48 @@ export const CustomWorkspace = observer(
       )
     }, [store])
 
+    // Apply rounded corners to Polotno page containers.
+    // Uses both an injected <style> tag AND a MutationObserver with inline styles
+    // to guarantee the effect survives any Polotno re-renders.
+    useEffect(() => {
+      // 1. Inject a <style> tag so the rule exists at the highest possible priority
+      const styleTag = document.createElement("style")
+      styleTag.id = "polotno-radius-fix"
+      styleTag.textContent = `
+        .polotno-page-container {
+          border-radius: 10px !important;
+          overflow: hidden !important;
+          /* Safari: -webkit-mask forces the GPU layer to respect border-radius */
+          -webkit-mask-image: -webkit-radial-gradient(white, black) !important;
+          /* Chrome/Firefox fallback */
+          clip-path: inset(0 round 10px) !important;
+        }
+      `
+      document.head.appendChild(styleTag)
+
+      // 2. Also stamp inline styles via MutationObserver as a belt-and-suspenders measure
+      const applyRadius = (el: HTMLElement) => {
+        el.style.setProperty("border-radius", "10px", "important")
+        el.style.setProperty("overflow", "hidden", "important")
+        el.style.setProperty("-webkit-mask-image", "-webkit-radial-gradient(white, black)", "important")
+        el.style.setProperty("clip-path", "inset(0 round 10px)", "important")
+      }
+
+      const applyToDoc = () => {
+        document.querySelectorAll<HTMLElement>(".polotno-page-container").forEach(applyRadius)
+      }
+
+      applyToDoc()
+
+      const observer = new MutationObserver(applyToDoc)
+      observer.observe(document.body, { childList: true, subtree: true })
+
+      return () => {
+        observer.disconnect()
+        styleTag.remove()
+      }
+    }, [])
+
     useEffect(() => {
       if (!activeWritingGuide || !isWritingGuideArmed || !drawState) {
         return
@@ -511,8 +646,9 @@ export const CustomWorkspace = observer(
           <div className="flex-1 relative min-h-0">
             <Workspace
               store={store}
-              layout="horizontal"
+              layout="vertical"
               backgroundColor="#F5F2EE"
+              components={{ PageControls: () => null }}
             />
 
             <div className="pointer-events-none absolute bottom-4 left-4 z-20">
@@ -554,6 +690,34 @@ export const CustomWorkspace = observer(
                   title="Zoom out"
                 >
                   <ZoomOut className="h-4 w-4" />
+                </button>
+                {/* Divider */}
+                <div className="mx-auto h-px w-6 bg-[#d0c8be]" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newPage = store.addPage()
+                    store.selectPage(newPage.id)
+                  }}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-[#171717] bg-[#FCFAF8] text-[#171717] shadow-[0_8px_24px_rgba(15,23,42,0.12)] transition hover:bg-white"
+                  aria-label="Add canvas"
+                  title="Add canvas below"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  disabled={store.pages.length <= 1}
+                  onClick={() => {
+                    if (store.activePage) {
+                      store.deletePages([store.activePage.id])
+                    }
+                  }}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[#171717] bg-[#FCFAF8] text-[#171717] shadow-[0_8px_24px_rgba(15,23,42,0.12)] transition hover:border-red-500 hover:text-red-500 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Delete canvas"
+                  title="Delete current canvas"
+                >
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             </div>

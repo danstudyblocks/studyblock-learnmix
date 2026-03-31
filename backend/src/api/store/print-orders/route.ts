@@ -5,7 +5,7 @@ import {
   Modules,
 } from "@medusajs/framework/utils";
 import { IProductModuleService, ISalesChannelModuleService, ICartModuleService, IPricingModuleService } from "@medusajs/framework/types";
-import { createProductsWorkflow } from "@medusajs/medusa/core-flows";
+import { createProductsWorkflow, uploadFilesWorkflow } from "@medusajs/medusa/core-flows";
 
 type CreatePrintOrderBody = {
   title?: string;
@@ -363,23 +363,78 @@ export const POST = async (
       unitPrice = variantPrice.amount;
     }
 
-    await cartModuleService.addLineItems(cart.id, [{
+    // Upload the PDF to file storage so it's accessible from the order
+    let pdfFileUrl: string | null = null;
+    const pdfBase64 = String(req.body.metadata?.pdf_base64 ?? "");
+    if (pdfBase64) {
+      try {
+        const pdfBuffer = Buffer.from(pdfBase64, "base64");
+        const filename = `print-order-${cart.id}-${Date.now()}.pdf`;
+
+        const { result: uploadResult } = await uploadFilesWorkflow(req.scope).run({
+          input: {
+            files: [{
+              filename,
+              mimeType: "application/pdf",
+              content: pdfBuffer.toString("base64"),
+              access: "private",
+            }],
+          },
+        });
+
+        pdfFileUrl = uploadResult?.[0]?.url ?? null;
+        logger.info(`Uploaded print PDF to ${pdfFileUrl}`);
+      } catch (uploadErr) {
+        logger.warn(`Could not upload PDF for cart ${cart.id}: ${uploadErr}`);
+      }
+    }
+
+    // Store pdf_base64 in metadata only as fallback if upload failed
+    const lineItemMeta: Record<string, unknown> = {
       variant_id: variant.id,
-      quantity: Number(quantity),
-      title: variant.title || variantTitle,
-      unit_price: unitPrice,
-      metadata: {
-        print_order: printOrderData,
+      print_order: {
+        ...printOrderData,
+        pdf_url: pdfFileUrl,
+        metadata: {
+          ...((printOrderData.metadata as Record<string, unknown>) ?? {}),
+          pdf_base64: pdfFileUrl ? undefined : pdfBase64, // omit if we have a URL
+        },
       },
-    }]);
+    };
 
-    logger.info(`Added variant ${variant.id} to cart ${cart.id}`);
+    // Custom line item — no variant_id, requires_shipping: false so Medusa
+    // never demands a shipping method for this cart.
+    await cartModuleService.addLineItems(cart.id, [
+      // 1. Print item
+      {
+        quantity: Number(quantity),
+        title: variant.title || variantTitle,
+        unit_price: unitPrice,
+        requires_shipping: false,
+        metadata: lineItemMeta,
+      },
+      // 2. FedEx shipping line item so it appears on the order
+      {
+        quantity: 1,
+        title: "FedEx Shipping",
+        unit_price: 4.95,
+        requires_shipping: false,
+        metadata: {
+          type: "shipping",
+          carrier: "FedEx",
+          estimated_delivery: "3-5 working days",
+        },
+      },
+    ]);
 
-    // Return cart ID for frontend to redirect to checkout
+    logger.info(`Added print + shipping line items to cart ${cart.id}`);
+
+    // Return cart ID and PDF url so complete-order can write it to the order
     res.json({
       cart_id: cart.id,
       variant_id: variant.id,
       quantity: quantity,
+      pdf_url: pdfFileUrl,
     });
   } catch (error) {
     const message =
