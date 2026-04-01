@@ -1526,6 +1526,94 @@ input[type="number"] {
   height: 0;
 }
 
+/* =============================================
+   Element-selection floating toolbar
+   Matches the zoom / undo / redo pill buttons
+   ============================================= */
+
+/* Strip the default Blueprint navbar chrome */
+.polotno-workspace-container .bp5-navbar {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 999px !important;
+  padding: 0 !important;
+  min-width: 0 !important;
+  height: auto !important;
+}
+
+.polotno-workspace-container .bp5-navbar-group {
+  height: auto !important;
+  display: flex !important;
+  gap: 5px !important;
+  align-items: center !important;
+  padding: 0 !important;
+}
+
+/* Each action button → round pill matching zoom buttons */
+.polotno-workspace-container .bp5-navbar .bp5-button,
+.polotno-workspace-container .bp5-navbar .bp5-popover-target .bp5-button {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  border: 1px solid #171717 !important;
+  background: #FCFAF8 !important;
+  color: #171717 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12) !important;
+  transition: background 150ms ease, box-shadow 150ms ease !important;
+  cursor: pointer !important;
+}
+
+.polotno-workspace-container .bp5-navbar .bp5-button:hover,
+.polotno-workspace-container .bp5-navbar .bp5-popover-target .bp5-button:hover {
+  background: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.16) !important;
+}
+
+.polotno-workspace-container .bp5-navbar .bp5-button:disabled,
+.polotno-workspace-container .bp5-navbar .bp5-button.bp5-disabled {
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+}
+
+/* Delete / remove button gets a red hover */
+.polotno-workspace-container .bp5-navbar .bp5-button[title*="emove"],
+.polotno-workspace-container .bp5-navbar .bp5-button[title*="elete"] {
+  border-color: #171717 !important;
+}
+
+.polotno-workspace-container .bp5-navbar .bp5-button[title*="emove"]:hover,
+.polotno-workspace-container .bp5-navbar .bp5-button[title*="elete"]:hover {
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+  background: #fef2f2 !important;
+}
+
+/* Keep icons centred and correctly sized */
+.polotno-workspace-container .bp5-navbar .bp5-button .bp5-icon,
+.polotno-workspace-container .bp5-navbar .bp5-button svg {
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+}
+
+/* Hide any button-text labels (icon-only) */
+.polotno-workspace-container .bp5-navbar .bp5-button-text {
+  display: none !important;
+}
+
+/* Popover targets (e.g. Position picker) sit inline */
+.polotno-workspace-container .bp5-navbar .bp5-popover-target {
+  display: inline-flex !important;
+  margin: 0 !important;
+}
+
 /* duplicate and add pages */
 .bp5-icon.bp5-icon-duplicate,
 .bp5-icon.bp5-icon-insert,
@@ -1533,7 +1621,9 @@ input[type="number"] {
   margin-left: -0.2em !important;
 }
 
-.bp5-button.bp5-minimal {
+/* Scoped away from the canvas element-selection toolbar */
+:not(.polotno-workspace-container) > .bp5-button.bp5-minimal,
+.polotno-side-panel .bp5-button.bp5-minimal {
   padding: 1em !important;
   margin-bottom: 1em !important;
 }
